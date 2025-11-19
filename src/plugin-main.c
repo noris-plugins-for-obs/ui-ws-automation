@@ -1,5 +1,5 @@
 /*
-Plugin Template for OBS Studio
+UI WS Automation Plugin for OBS Studio
 Copyright (C) 2025 Norihiro Kamae
 
 This program is free software; you can redistribute it and/or modify
@@ -17,8 +17,10 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 */
 
 #include <obs-module.h>
+#include <obs-frontend-api.h>
 #include <stdlib.h>
 
+#include <obs-websocket-api.h>
 #include "plugin-macros.generated.h"
 
 OBS_DECLARE_MODULE()

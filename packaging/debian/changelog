@@ -1,4 +1,4 @@
-simple-plugin-template (%VERSION%-%RELEASE%~%DISTRIBUTION%) %DISTRIBUTION%; urgency=medium
+ui-ws-automation-for-obs (%VERSION%-%RELEASE%~%DISTRIBUTION%) %DISTRIBUTION%; urgency=medium
 
   * Initial release
 

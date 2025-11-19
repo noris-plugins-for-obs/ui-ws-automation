@@ -1,7 +1,7 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: simple-plugin-template
-Upstream-Contact: simple-plugin-template
-Source: https://github.com/noris-plugins-for-obs/simple-plugin-template
+Upstream-Name: ui-ws-automation-for-obs
+Upstream-Contact: Norihiro Kamae <norihiro@nagater.net>
+Source: https://github.com/noris-plugins-for-obs/ui-ws-automation
 
 Files: *
 Copyright: 2025 Norihiro Kamae <norihiro@nagater.net>

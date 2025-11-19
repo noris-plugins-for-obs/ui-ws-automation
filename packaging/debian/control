@@ -1,4 +1,4 @@
-Source: simple-plugin-template
+Source: ui-ws-automation-for-obs
 Section: video
 Priority: optional
 Maintainer: Norihiro Kamae <norihiro-ppa-plugins-for-obs-studio@nagater.net>
@@ -11,9 +11,9 @@ Build-Depends:
  qt6-base-dev, qt6-base-private-dev, libqt6svg6-dev, qt6-wayland,
  libxcb1-dev, libx11-xcb-dev, libwayland-dev, libglvnd-dev
 Standards-Version: 4.6.0
-Homepage: https://github.com/noris-plugins-for-obs/simple-plugin-template
+Homepage: https://github.com/noris-plugins-for-obs/ui-ws-automation
 
-Package: simple-plugin-template-for-obs
+Package: ui-ws-automation-for-obs
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: template plugin plugin for OBS Studio

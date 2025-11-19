@@ -1,7 +1,7 @@
-Name: obs-studio-plugin-simple-template
+Name: obs-studio-plugin-ui-ws-automation
 Version: @VERSION@
 Release: @RELEASE@%{?dist}
-Summary: simple template plugin for OBS Studio
+Summary: UI WS Automation Plugin for OBS Studio
 License: GPLv2+
 
 Source0: %{name}-%{version}.tar.bz2
@@ -10,7 +10,8 @@ BuildRequires: obs-studio-devel
 BuildRequires: qt6-qtbase-devel qt6-qtbase-private-devel
 
 %description
-Template plugin to demonstrate build flow.
+Helps to test plugins on OBS Studio by delegating user-interface operation
+through obs-websocket.
 
 %prep
 %autosetup -p1

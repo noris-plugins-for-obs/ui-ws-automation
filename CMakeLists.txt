@@ -1,15 +1,15 @@
 cmake_minimum_required(VERSION 3.12)
 
-project(simple-plugin-template VERSION 0.1.0) # TODO: Set for each plugin
+project(ui-ws-automation VERSION 0.1.0)
 
 set(PLUGIN_AUTHOR "Norihiro Kamae")
 
-set(PLUGIN_URL "https://www.example.com/") # TODO: Set for each plugin
-set(ID_PREFIX "net.nagater.obs.simple-plugin-template.") # TODO: Set for each plugin
-set(MACOS_BUNDLEID "net.nagater.obs.simple-plugin-template") # TODO: Set for each plugin
-set(MACOS_PACKAGE_UUID   "5D2F3BC5-7DD1-4108-920E-C89883D7236A") # TODO: Set for each plugin
-set(MACOS_INSTALLER_UUID "78EE49EB-58F1-48D5-BA34-8D026C3DF918") # TODO: Set for each plugin
-set(WIN_INSTALLER_UUID   "3A43C590-587D-4F22-8D2B-514F89C4A378") # TODO: Set for each plugin
+set(PLUGIN_URL "https://github.com/noris-plugins-for-obs/ui-ws-automation")
+set(ID_PREFIX "net.nagater.obs.ui-ws-automation.")
+set(MACOS_BUNDLEID "net.nagater.obs.ui-ws-automation")
+set(MACOS_PACKAGE_UUID   "6C5C31CD-87D5-4AF5-953D-80EFDDDBA3E7")
+set(MACOS_INSTALLER_UUID "4C85F6D1-2FB9-41BC-90C2-6A393828F5AC")
+set(WIN_INSTALLER_UUID   "EE597C1D-4B59-4C2F-B45C-5803223FBE77")
 
 set(LINUX_MAINTAINER_EMAIL "norihiro@nagater.net")
 
@@ -52,6 +52,8 @@ target_link_libraries(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME}
 	PRIVATE
 	${CMAKE_CURRENT_BINARY_DIR}
+	${CMAKE_CURRENT_SOURCE_DIR}/src
+	${CMAKE_CURRENT_SOURCE_DIR}/deps/obs-websocket
 )
 
 if(OS_WINDOWS)
