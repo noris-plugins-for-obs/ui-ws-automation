@@ -55,21 +55,21 @@ struct ws_interface_s
 	void *priv_data;
 };
 
-#define FUNC_MTSAFE(func) \
-static void func##_mtsafe_int(void *data) \
-{ \
-	struct ws_interface_s *wsif = data; \
-	func(wsif->request, wsif->response, wsif->priv_data); \
-} \
-static void func##_mtsafe(obs_data_t *request, obs_data_t *response, void *priv_data) \
-{ \
-	if (obs_in_task_thread(OBS_TASK_UI)) \
-		func(request, response, priv_data); \
-	else { \
-		struct ws_interface_s wsif = {request, response, priv_data}; \
-		obs_queue_task(OBS_TASK_UI, func##_mtsafe_int, &wsif, true); \
-	} \
-}
+#define FUNC_MTSAFE(func)                                                                     \
+	static void func##_mtsafe_int(void *data)                                             \
+	{                                                                                     \
+		struct ws_interface_s *wsif = data;                                           \
+		func(wsif->request, wsif->response, wsif->priv_data);                         \
+	}                                                                                     \
+	static void func##_mtsafe(obs_data_t *request, obs_data_t *response, void *priv_data) \
+	{                                                                                     \
+		if (obs_in_task_thread(OBS_TASK_UI))                                          \
+			func(request, response, priv_data);                                   \
+		else {                                                                        \
+			struct ws_interface_s wsif = {request, response, priv_data};          \
+			obs_queue_task(OBS_TASK_UI, func##_mtsafe_int, &wsif, true);          \
+		}                                                                             \
+	}
 
 FUNC_MTSAFE(menu_list);
 FUNC_MTSAFE(menu_trigger);
