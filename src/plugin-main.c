@@ -22,6 +22,7 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 
 #include <obs-websocket-api.h>
 #include "plugin-macros.generated.h"
+#include "entrypoints.h"
 
 OBS_DECLARE_MODULE()
 OBS_MODULE_USE_DEFAULT_LOCALE(PLUGIN_NAME, "en-US")
@@ -45,4 +46,50 @@ bool obs_module_load(void)
 	blog(LOG_INFO, "plugin loaded (plugin version %s, API version %d.%d.%d)", PLUGIN_VERSION, LIBOBS_API_MAJOR_VER,
 	     LIBOBS_API_MINOR_VER, LIBOBS_API_PATCH_VER);
 	return true;
+}
+
+struct ws_interface_s
+{
+	obs_data_t *request;
+	obs_data_t *response;
+	void *priv_data;
+};
+
+#define FUNC_MTSAFE(func)                                                                     \
+	static void func##_mtsafe_int(void *data)                                             \
+	{                                                                                     \
+		struct ws_interface_s *wsif = data;                                           \
+		func(wsif->request, wsif->response, wsif->priv_data);                         \
+	}                                                                                     \
+	static void func##_mtsafe(obs_data_t *request, obs_data_t *response, void *priv_data) \
+	{                                                                                     \
+		if (obs_in_task_thread(OBS_TASK_UI))                                          \
+			func(request, response, priv_data);                                   \
+		else {                                                                        \
+			struct ws_interface_s wsif = {request, response, priv_data};          \
+			obs_queue_task(OBS_TASK_UI, func##_mtsafe_int, &wsif, true);          \
+		}                                                                             \
+	}
+
+FUNC_MTSAFE(menu_list);
+FUNC_MTSAFE(menu_trigger);
+FUNC_MTSAFE(widget_list);
+
+void obs_module_post_load()
+{
+	void *main_window = obs_frontend_get_main_window();
+	if (!main_window) {
+		blog(LOG_ERROR, "Cannot get the main window pointer");
+		return;
+	}
+
+	obs_websocket_vendor ws_vendor = obs_websocket_register_vendor(PLUGIN_NAME);
+	if (!ws_vendor) {
+		blog(LOG_ERROR, "Cannot register websocket vendor '%s'", PLUGIN_NAME);
+		return;
+	}
+
+	obs_websocket_vendor_register_request(ws_vendor, "menu-list", menu_list_mtsafe, main_window);
+	obs_websocket_vendor_register_request(ws_vendor, "menu-trigger", menu_trigger_mtsafe, main_window);
+	obs_websocket_vendor_register_request(ws_vendor, "widget-list", widget_list_mtsafe, main_window);
 }
