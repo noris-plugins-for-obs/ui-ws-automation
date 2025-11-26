@@ -74,6 +74,7 @@ struct ws_interface_s
 FUNC_MTSAFE(menu_list);
 FUNC_MTSAFE(menu_trigger);
 FUNC_MTSAFE(widget_list);
+FUNC_MTSAFE(widget_invoke);
 
 void obs_module_post_load()
 {
@@ -92,4 +93,5 @@ void obs_module_post_load()
 	obs_websocket_vendor_register_request(ws_vendor, "menu-list", menu_list_mtsafe, main_window);
 	obs_websocket_vendor_register_request(ws_vendor, "menu-trigger", menu_trigger_mtsafe, main_window);
 	obs_websocket_vendor_register_request(ws_vendor, "widget-list", widget_list_mtsafe, main_window);
+	obs_websocket_vendor_register_request(ws_vendor, "widget-invoke", widget_invoke_mtsafe, main_window);
 }

@@ -183,6 +183,28 @@ static bool query_widget(const QWidget *widget, obs_data_t *data, int depth)
 	return true;
 }
 
+static QWidget *find_widget(QWidget *widget, obs_data_array_t *array, int idx)
+{
+	OBSDataAutoRelease data = obs_data_array_item(array, idx);
+	if (!data)
+		return nullptr;
+	if (!test_object(widget, data))
+		return nullptr;
+
+	if ((size_t)idx + 1 == obs_data_array_count(array))
+		return widget;
+
+	for (QObject *obj : widget->children()) {
+		QWidget *w = qobject_cast<QWidget *>(obj);
+		if (!w)
+			continue;
+		if (QWidget *ret = find_widget(w, array, idx + 1))
+			return ret;
+	}
+
+	return nullptr;
+}
+
 void menu_list(obs_data_t *request, obs_data_t *response, void *priv_data)
 {
 	auto main_window = static_cast<QMainWindow *>(priv_data);
@@ -230,4 +252,83 @@ void widget_list(obs_data_t *request, obs_data_t *response, void *priv_data)
 	auto main_window = static_cast<QMainWindow *>(priv_data);
 
 	query_widget(main_window, response, 0);
+}
+
+static bool find_method(QMetaMethod &method, QObject *obj, const char *method_name)
+{
+	const QMetaObject *metaObject = obj->metaObject();
+	if (!metaObject)
+		return false;
+
+	for (int i = 0; i < metaObject->methodCount(); i++) {
+		method = metaObject->method(i);
+		if (strcmp(method.name().data(), method_name) == 0)
+			return true;
+	}
+	return false;
+}
+
+void widget_invoke(obs_data_t *request, obs_data_t *response, void *priv_data)
+{
+	auto main_window = static_cast<QMainWindow *>(priv_data);
+
+	OBSDataArrayAutoRelease array = obs_data_get_array(request, "path");
+	QWidget *found = nullptr;
+	for (QObject *obj : main_window->children()) {
+		QWidget *w = qobject_cast<QWidget *>(obj);
+		if (!w)
+			continue;
+		if (QWidget *ret = find_widget(w, array, 0)) {
+			found = ret;
+			break;
+		}
+	}
+
+	if (!found) {
+		obs_data_set_string(response, "result", "Error: no object found");
+		return;
+	}
+
+	QMetaMethod method;
+	if (!find_method(method, found, obs_data_get_string(request, "method"))) {
+		obs_data_set_string(response, "result", "Error: no method found");
+
+		const QMetaObject *metaObject = found->metaObject();
+		if (metaObject) {
+			for (int i = 0; i < metaObject->methodCount(); i++) {
+				blog(LOG_INFO, "available method[%d]: '%s'", i, metaObject->method(i).name().data());
+			}
+		}
+		return;
+	}
+
+	if (method.parameterCount() == 0) {
+		method.invoke(found, Qt::QueuedConnection);
+		return;
+	}
+
+	if (method.parameterCount() == 1) {
+		char arg_name[8] = "arg1";
+		obs_data_item_t *item = obs_data_item_byname(request, arg_name);
+		if (!item)
+			return;
+		if (obs_data_item_has_user_value(item)) {
+			switch (obs_data_item_gettype(item)) {
+			case OBS_DATA_STRING: {
+				QString str = QString::fromUtf8(obs_data_item_get_string(item));
+				method.invoke(found, Qt::QueuedConnection, Q_ARG(QString, str));
+				break;
+			}
+			case OBS_DATA_NUMBER:
+				// TODO: Implement
+				break;
+			case OBS_DATA_BOOLEAN:
+				// TODO: Implement
+				break;
+			default:
+				break;
+			}
+		}
+		obs_data_item_release(&item);
+	}
 }
