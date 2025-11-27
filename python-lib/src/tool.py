@@ -97,6 +97,35 @@ def _remove_by_key(data, keys):
         for value in data:
             _remove_by_key(value, keys)
 
+def _filter_tree_match(data, cond):
+    for key, value in cond.items():
+        if key not in data:
+            return False
+        if data[key] != value:
+            return False
+    return True
+
+def _filter_tree(data, children_key, path, i_path=0):
+    if not isinstance(data, list):
+        return data
+
+    ret = []
+    for value in data:
+        if not isinstance(value, dict):
+            ret.append(value)
+            continue
+
+        if i_path < len(path) and not _filter_tree_match(value, path[i_path]):
+            continue
+        if i_path + 1 < len(path):
+            children = _filter_tree(value[children_key], children_key, path, i_path + 1)
+            if not children:
+                continue
+            value = dict(value)
+            value[children_key] = children
+        ret.append(value)
+    return ret
+
 def _get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--list-menu', action='store_true', default=False)
@@ -124,7 +153,9 @@ def _main():
             'vendorName': 'ui-ws-automation',
             'requestType': 'menu-list',
         })
-        data = res.response_data
+        data = res.response_data['menu']
+        if args.path:
+            data = _filter_tree(data, 'menu', args.path)
         if args.simplify:
             data = _remove_empty(data)
         print(_pretty_format(data))
@@ -135,6 +166,8 @@ def _main():
             'requestType': 'widget-list',
         })
         data = res.response_data['children']
+        if args.path:
+            data = _filter_tree(data, 'children', args.path)
         if args.simplify:
             _remove_empty(data)
         if args.no_geometry:
