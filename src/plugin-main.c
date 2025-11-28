@@ -94,4 +94,5 @@ void obs_module_post_load()
 	obs_websocket_vendor_register_request(ws_vendor, "menu-trigger", menu_trigger_mtsafe, main_window);
 	obs_websocket_vendor_register_request(ws_vendor, "widget-list", widget_list_mtsafe, main_window);
 	obs_websocket_vendor_register_request(ws_vendor, "widget-invoke", widget_invoke_mtsafe, main_window);
+	obs_websocket_vendor_register_request(ws_vendor, "widget-grab", widget_grab_mtsafe, main_window);
 }

@@ -3,6 +3,7 @@
 #include <QMainWindow>
 #include <QMenuBar>
 #include <QMetaProperty>
+#include <QBuffer>
 
 #include "plugin-macros.generated.h"
 #include "entrypoints.h"
@@ -268,21 +269,29 @@ static bool find_method(QMetaMethod &method, QObject *obj, const char *method_na
 	return false;
 }
 
-void widget_invoke(obs_data_t *request, obs_data_t *response, void *priv_data)
+QWidget *find_object_by_path(QMainWindow *main_window, obs_data_t *request)
 {
-	auto main_window = static_cast<QMainWindow *>(priv_data);
-
 	OBSDataArrayAutoRelease array = obs_data_get_array(request, "path");
-	QWidget *found = nullptr;
+
+	if (obs_data_array_count(array) == 0)
+		return main_window;
+
 	for (QObject *obj : main_window->children()) {
 		QWidget *w = qobject_cast<QWidget *>(obj);
 		if (!w)
 			continue;
 		if (QWidget *ret = find_widget(w, array, 0)) {
-			found = ret;
-			break;
+			return ret;
 		}
 	}
+	return nullptr;
+}
+
+void widget_invoke(obs_data_t *request, obs_data_t *response, void *priv_data)
+{
+	auto main_window = static_cast<QMainWindow *>(priv_data);
+
+	QWidget *found = find_object_by_path(main_window, request);
 
 	if (!found) {
 		obs_data_set_string(response, "error", "Error: no object found");
@@ -308,27 +317,80 @@ void widget_invoke(obs_data_t *request, obs_data_t *response, void *priv_data)
 	}
 
 	if (method.parameterCount() == 1) {
+		bool ok = false;
 		char arg_name[8] = "arg1";
 		obs_data_item_t *item = obs_data_item_byname(request, arg_name);
-		if (!item)
-			return;
-		if (obs_data_item_has_user_value(item)) {
+		if (item && obs_data_item_has_user_value(item)) {
 			switch (obs_data_item_gettype(item)) {
 			case OBS_DATA_STRING: {
 				QString str = QString::fromUtf8(obs_data_item_get_string(item));
 				method.invoke(found, Qt::QueuedConnection, Q_ARG(QString, str));
+				ok = true;
 				break;
 			}
 			case OBS_DATA_NUMBER:
-				// TODO: Implement
+				method.invoke(found, Qt::QueuedConnection, Q_ARG(int, obs_data_item_get_int(item)));
+				ok = true;
 				break;
 			case OBS_DATA_BOOLEAN:
-				// TODO: Implement
+				method.invoke(found, Qt::QueuedConnection, Q_ARG(bool, obs_data_item_get_bool(item)));
+				ok = true;
 				break;
 			default:
 				break;
 			}
 		}
 		obs_data_item_release(&item);
+		if (ok)
+			return;
 	}
+
+	blog(LOG_ERROR, "Failed to invoke method '%s'", method.name().data());
+	obs_data_set_string(response, "error", "Error: invalid arguments");
+}
+
+struct widget_grab_s
+{
+	obs_data_t *request;
+	obs_data_t *response;
+	QMainWindow *main_window;
+	QImage image;
+};
+
+void widget_grab_internal(void *priv_data)
+{
+	auto *param = static_cast<widget_grab_s *>(priv_data);
+
+	QWidget *found = find_object_by_path(param->main_window, param->request);
+
+	if (!found) {
+		obs_data_set_string(param->response, "error", "Error: no object found");
+		return;
+	}
+
+	param->image = found->grab().toImage();
+}
+
+void widget_grab_mtsafe(obs_data_t *request, obs_data_t *response, void *priv_data)
+{
+	widget_grab_s param = {
+		request,
+		response,
+		static_cast<QMainWindow *>(priv_data),
+	};
+
+	obs_queue_task(OBS_TASK_UI, widget_grab_internal, &param, true);
+
+	if (param.image.isNull()) {
+		if (!obs_data_has_user_value(response, "error"))
+			obs_data_set_string(response, "error", "Error: failed to convert to image");
+		return;
+	}
+
+	QByteArray png_data;
+	QBuffer buffer(&png_data);
+	buffer.open(QIODevice::WriteOnly);
+	param.image.save(&buffer, "PNG");
+	QByteArray png_b64 = png_data.toBase64();
+	obs_data_set_string(response, "image", png_b64.toStdString().c_str());
 }
