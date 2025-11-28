@@ -7,6 +7,7 @@ import argparse
 import json
 import textwrap
 import obsws_python
+import obsws_ui.common
 
 def _is_simple(data):
     return isinstance(data, (str, bool, int, float))
@@ -132,6 +133,7 @@ def _get_args():
     parser.add_argument('--list-widgets', action='store_true', default=False)
     parser.add_argument('--trigger', action='store_true', default=None)
     parser.add_argument('--invoke-widget', action='store_true', default=None)
+    parser.add_argument('--grab', action='store_true', default=False)
     parser.add_argument('--simplify', action='store_true', default=False)
     parser.add_argument('--no-geometry', action='store_true', default=False)
     parser.add_argument('path', nargs='?', default=None)
@@ -143,16 +145,14 @@ def _get_args():
 
     return args
 
-def _main():
+def main():
+    'Entry point'
     args = _get_args()
 
     cl = obsws_python.ReqClient(host='localhost', port=4455)
 
     if args.list_menu:
-        res = cl.send('CallVendorRequest', {
-            'vendorName': 'ui-ws-automation',
-            'requestType': 'menu-list',
-        })
+        res = cl.send('CallVendorRequest', obsws_ui.common.request_menu_list())
         data = res.response_data['menu']
         if args.path:
             data = _filter_tree(data, 'menu', args.path)
@@ -161,10 +161,7 @@ def _main():
         print(_pretty_format(data))
 
     if args.list_widgets:
-        res = cl.send('CallVendorRequest', {
-            'vendorName': 'ui-ws-automation',
-            'requestType': 'widget-list',
-        })
+        res = cl.send('CallVendorRequest', obsws_ui.common.request_widget_list())
         data = res.response_data['children']
         if args.path:
             data = _filter_tree(data, 'children', args.path)
@@ -182,27 +179,30 @@ def _main():
         print(_pretty_format(data))
 
     if args.trigger:
-        res = cl.send('CallVendorRequest', {
-            'vendorName': 'ui-ws-automation',
-            'requestType': 'menu-trigger',
-            'requestData': {'path': args.path,},
-        })
+        res = cl.send('CallVendorRequest', obsws_ui.common.request_menu_trigger(args.path))
+        obsws_ui.common.validate_response(res)
         print(res.response_data)
 
     if args.invoke_widget:
-        data = {
-                'path': args.path,
-                'method': args.args[0],
-        }
-        for i, arg in enumerate(args.args):
-            data[f'arg{i}'] = arg
+        def _arg_to_data(arg):
+            if arg.startswith('bool:'):
+                return bool(arg[5:])
+            if arg.startswith('int:'):
+                return int(arg[4:])
+            if arg.startswith('str:'):
+                return str(arg[4:])
+            return arg
 
-        res = cl.send('CallVendorRequest', {
-            'vendorName': 'ui-ws-automation',
-            'requestType': 'widget-invoke',
-            'requestData': data,
-        })
+        res = cl.send('CallVendorRequest', obsws_ui.common.request_widget_invoke(
+            args.path, args.args[0],
+            *[_arg_to_data(arg) for arg in args.args[1:]]))
         print(res.response_data)
 
+    if args.grab:
+        res = cl.send('CallVendorRequest', obsws_ui.common.request_widget_grab(args.path))
+        png = obsws_ui.common.decode_widget_grab(res)
+        with open(args.args[0], 'wb') as fw:
+            fw.write(png)
+
 if __name__ == '__main__':
-    _main()
+    main()
