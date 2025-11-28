@@ -211,7 +211,7 @@ void menu_list(obs_data_t *request, obs_data_t *response, void *priv_data)
 
 	QMenuBar *menuBar = qobject_cast<QMenuBar *>(main_window->menuWidget());
 	if (!menuBar) {
-		obs_data_set_string(response, "result", "Error: no menu bar");
+		obs_data_set_string(response, "error", "Error: no menu bar");
 	}
 
 	OBSDataArrayAutoRelease array = obs_data_array_create();
@@ -230,7 +230,7 @@ void menu_trigger(obs_data_t *request, obs_data_t *response, void *priv_data)
 
 	QMenuBar *menuBar = qobject_cast<QMenuBar *>(main_window->menuWidget());
 	if (!menuBar) {
-		obs_data_set_string(response, "result", "Error: no menu bar");
+		obs_data_set_string(response, "error", "Error: no menu bar");
 	}
 
 	OBSDataArrayAutoRelease array = obs_data_get_array(request, "path");
@@ -243,7 +243,7 @@ void menu_trigger(obs_data_t *request, obs_data_t *response, void *priv_data)
 	if (found) {
 		found->trigger();
 	} else {
-		obs_data_set_string(response, "result", "Error: not found");
+		obs_data_set_string(response, "error", "Error: not found");
 	}
 }
 
@@ -285,13 +285,13 @@ void widget_invoke(obs_data_t *request, obs_data_t *response, void *priv_data)
 	}
 
 	if (!found) {
-		obs_data_set_string(response, "result", "Error: no object found");
+		obs_data_set_string(response, "error", "Error: no object found");
 		return;
 	}
 
 	QMetaMethod method;
 	if (!find_method(method, found, obs_data_get_string(request, "method"))) {
-		obs_data_set_string(response, "result", "Error: no method found");
+		obs_data_set_string(response, "error", "Error: no method found");
 
 		const QMetaObject *metaObject = found->metaObject();
 		if (metaObject) {
