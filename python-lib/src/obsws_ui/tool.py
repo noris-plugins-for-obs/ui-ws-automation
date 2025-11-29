@@ -8,6 +8,7 @@ import json
 import textwrap
 import obsws_python
 import obsws_ui.common
+import obsws_ui.client
 
 def _is_simple(data):
     return isinstance(data, (str, bool, int, float))
@@ -107,12 +108,12 @@ def _filter_tree_match(data, cond):
     return True
 
 def _filter_tree(data, children_key, path, i_path=0):
-    if not isinstance(data, list):
+    if not isinstance(data, list): # pragma: no cover
         return data
 
     ret = []
     for value in data:
-        if not isinstance(value, dict):
+        if not isinstance(value, dict): # pragma: no cover
             ret.append(value)
             continue
 
@@ -149,11 +150,10 @@ def main():
     'Entry point'
     args = _get_args()
 
-    cl = obsws_python.ReqClient(host='localhost', port=4455)
+    ui = obsws_ui.client.OBSWSUI(obsws_python.ReqClient(host='localhost', port=4455))
 
     if args.list_menu:
-        res = cl.send('CallVendorRequest', obsws_ui.common.request_menu_list())
-        data = res.response_data['menu']
+        data = ui.menu_list()
         if args.path:
             data = _filter_tree(data, 'menu', args.path)
         if args.simplify:
@@ -161,8 +161,7 @@ def main():
         print(_pretty_format(data))
 
     if args.list_widgets:
-        res = cl.send('CallVendorRequest', obsws_ui.common.request_widget_list())
-        data = res.response_data['children']
+        data = ui.widget_list()
         if args.path:
             data = _filter_tree(data, 'children', args.path)
         if args.simplify:
@@ -179,9 +178,7 @@ def main():
         print(_pretty_format(data))
 
     if args.trigger:
-        res = cl.send('CallVendorRequest', obsws_ui.common.request_menu_trigger(args.path))
-        obsws_ui.common.validate_response(res)
-        print(res.response_data)
+        ui.menu_trigger(args.path)
 
     if args.invoke_widget:
         def _arg_to_data(arg):
@@ -193,14 +190,12 @@ def main():
                 return str(arg[4:])
             return arg
 
-        res = cl.send('CallVendorRequest', obsws_ui.common.request_widget_invoke(
+        ui.widget_invoke(
             args.path, args.args[0],
-            *[_arg_to_data(arg) for arg in args.args[1:]]))
-        print(res.response_data)
+            *[_arg_to_data(arg) for arg in args.args[1:]])
 
     if args.grab:
-        res = cl.send('CallVendorRequest', obsws_ui.common.request_widget_grab(args.path))
-        png = obsws_ui.common.decode_widget_grab(res)
+        png = ui.widget_grab(args.path)
         with open(args.args[0], 'wb') as fw:
             fw.write(png)
 
