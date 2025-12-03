@@ -12,12 +12,6 @@
 
 #define QT_TO_UTF8(str) str.toUtf8().constData()
 
-static void query_object(const QObject *obj, obs_data_t *data)
-{
-	obs_data_set_string(data, "objectName", QT_TO_UTF8(obj->objectName()));
-	obs_data_set_string(data, "className", obj->metaObject()->className());
-}
-
 static void query_object_all(const QObject *obj, obs_data_t *data)
 {
 	obs_data_set_string(data, "className", obj->metaObject()->className());
@@ -210,6 +204,7 @@ static QWidget *find_widget(QWidget *widget, obs_data_array_t *array, int idx)
 
 void menu_list(obs_data_t *request, obs_data_t *response, void *priv_data)
 {
+	UNUSED_PARAMETER(request);
 	auto main_window = static_cast<QMainWindow *>(priv_data);
 
 	QMenuBar *menuBar = qobject_cast<QMenuBar *>(main_window->menuWidget());
@@ -252,6 +247,7 @@ void menu_trigger(obs_data_t *request, obs_data_t *response, void *priv_data)
 
 void widget_list(obs_data_t *request, obs_data_t *response, void *priv_data)
 {
+	UNUSED_PARAMETER(request);
 	auto main_window = static_cast<QMainWindow *>(priv_data);
 
 	query_widget(main_window, response, 0);
@@ -416,6 +412,7 @@ void widget_grab_mtsafe(obs_data_t *request, obs_data_t *response, void *priv_da
 		request,
 		response,
 		static_cast<QMainWindow *>(priv_data),
+		QImage(),
 	};
 
 	obs_queue_task(OBS_TASK_UI, widget_grab_internal, &param, true);
