@@ -4,6 +4,8 @@
 #include <QMenuBar>
 #include <QMetaProperty>
 #include <QBuffer>
+#include <QWindow>
+#include <QScreen>
 
 #include "plugin-macros.generated.h"
 #include "entrypoints.h"
@@ -368,7 +370,44 @@ void widget_grab_internal(void *priv_data)
 		return;
 	}
 
-	param->image = found->grab().toImage();
+	const char *type = obs_data_get_string(param->request, "type");
+	if (type && strcmp(type, "window") == 0) {
+		QWidget *nw = found;
+		QWindow *wh = nullptr;
+		QScreen *screen = nullptr;
+		while (nw) {
+			wh = nw->windowHandle();
+			if (wh) {
+				screen = wh->screen();
+				if (screen)
+					break;
+			}
+
+			nw = nw->nativeParentWidget();
+		}
+		if (!wh) {
+			obs_data_set_string(param->response, "error", "Error: no window handle");
+			return;
+		}
+
+		if (!screen) {
+			obs_data_set_string(param->response, "error", "Error: no screen");
+			return;
+		}
+
+		int x = 0, y = 0;
+		int w = -1, h = -1;
+		if (found != nw) {
+			QPoint p = found->mapTo(nw, QPoint(0, 0));
+			x = p.x();
+			y = p.y();
+			w = found->rect().width();
+			h = found->rect().height();
+		}
+		param->image = screen->grabWindow(nw->winId(), x, y, w, h).toImage();
+	} else {
+		param->image = found->grab().toImage();
+	}
 }
 
 void widget_grab_mtsafe(obs_data_t *request, obs_data_t *response, void *priv_data)
