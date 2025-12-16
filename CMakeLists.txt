@@ -37,7 +37,11 @@ configure_file(
 
 set(PLUGIN_SOURCES
 	src/plugin-main.c
+	src/functions-object.cc
 	src/menu.cc
+	src/widget.cc
+	src/widget-invoke.cc
+	src/widget-grab.cc
 )
 
 add_library(${PROJECT_NAME} MODULE ${PLUGIN_SOURCES})
