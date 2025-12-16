@@ -22,6 +22,15 @@ static bool find_method(QMetaMethod &method, QObject *obj, const char *method_na
 	return false;
 }
 
+static void frameGeometry(QWidget *widget, obs_data_t *request, obs_data_t *response)
+{
+	QRect geo = widget->frameGeometry();
+	obs_data_set_int(response, "x", geo.x());
+	obs_data_set_int(response, "y", geo.y());
+	obs_data_set_int(response, "width", geo.width());
+	obs_data_set_int(response, "height", geo.height());
+}
+
 void widget_invoke(obs_data_t *request, obs_data_t *response, void *priv_data)
 {
 	auto main_window = static_cast<QMainWindow *>(priv_data);
@@ -33,8 +42,25 @@ void widget_invoke(obs_data_t *request, obs_data_t *response, void *priv_data)
 		return;
 	}
 
+	static const struct
+	{
+		const char *name;
+		void (*cb)(QWidget *, obs_data_t *, obs_data_t *);
+	} custom_methods[] = {
+		{"frameGeometry", frameGeometry},
+	};
+
+	const char *method_name = obs_data_get_string(request, "method");
+	for (const auto &cm : custom_methods) {
+		if (strcmp(method_name, cm.name) != 0)
+			continue;
+
+		cm.cb(found, request, response);
+		return;
+	}
+
 	QMetaMethod method;
-	if (!find_method(method, found, obs_data_get_string(request, "method"))) {
+	if (!find_method(method, found, method_name)) {
 		obs_data_set_string(response, "error", "Error: no method found");
 
 		const QMetaObject *metaObject = found->metaObject();
@@ -53,8 +79,7 @@ void widget_invoke(obs_data_t *request, obs_data_t *response, void *priv_data)
 
 	if (method.parameterCount() == 1) {
 		bool ok = false;
-		char arg_name[8] = "arg1";
-		obs_data_item_t *item = obs_data_item_byname(request, arg_name);
+		obs_data_item_t *item = obs_data_item_byname(request, "arg1");
 		if (item && obs_data_item_has_user_value(item)) {
 			switch (obs_data_item_gettype(item)) {
 			case OBS_DATA_STRING: {
