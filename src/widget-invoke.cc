@@ -22,13 +22,22 @@ static bool find_method(QMetaMethod &method, QObject *obj, const char *method_na
 	return false;
 }
 
+static void qrect_to_obs(obs_data_t *data, const QRect &rect)
+{
+	obs_data_set_int(data, "x", rect.x());
+	obs_data_set_int(data, "y", rect.y());
+	obs_data_set_int(data, "width", rect.width());
+	obs_data_set_int(data, "height", rect.height());
+}
+
 static void frameGeometry(QWidget *widget, obs_data_t *request, obs_data_t *response)
 {
 	QRect geo = widget->frameGeometry();
-	obs_data_set_int(response, "x", geo.x());
-	obs_data_set_int(response, "y", geo.y());
-	obs_data_set_int(response, "width", geo.width());
-	obs_data_set_int(response, "height", geo.height());
+	if (obs_data_get_bool(request, "mapToGlobal")) {
+		QPoint mapped = widget->mapToGlobal(geo.topLeft());
+		geo.moveTopLeft(mapped);
+	}
+	qrect_to_obs(response, geo);
 }
 
 void widget_invoke(obs_data_t *request, obs_data_t *response, void *priv_data)
