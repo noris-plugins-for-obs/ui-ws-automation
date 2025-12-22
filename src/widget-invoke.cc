@@ -40,6 +40,11 @@ static void frameGeometry(QWidget *widget, obs_data_t *request, obs_data_t *resp
 	qrect_to_obs(response, geo);
 }
 
+static void resize(QWidget *widget, obs_data_t *request, obs_data_t *)
+{
+	widget->resize(obs_data_get_int(request, "x"), obs_data_get_int(request, "y"));
+}
+
 void widget_invoke(obs_data_t *request, obs_data_t *response, void *priv_data)
 {
 	auto main_window = static_cast<QMainWindow *>(priv_data);
@@ -57,6 +62,7 @@ void widget_invoke(obs_data_t *request, obs_data_t *response, void *priv_data)
 		void (*cb)(QWidget *, obs_data_t *, obs_data_t *);
 	} custom_methods[] = {
 		{"frameGeometry", frameGeometry},
+		{"resize", resize},
 	};
 
 	const char *method_name = obs_data_get_string(request, "method");
