@@ -119,6 +119,12 @@ endmacro()
 file(RELATIVE_PATH RELATIVE_INSTALL_PATH ${CMAKE_SOURCE_DIR} ${CMAKE_INSTALL_PREFIX})
 file(RELATIVE_PATH RELATIVE_BUILD_PATH ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR})
 
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+	set(_ARCH_SUFFIX 64)
+else()
+	set(_ARCH_SUFFIX 32)
+endif()
+
 if(OS_MACOS)
 	set(CMAKE_OSX_ARCHITECTURES "x86_64" CACHE STRING "OBS build architecture for macOS - x86_64 required at least")
 	set_property(CACHE CMAKE_OSX_ARCHITECTURES PROPERTY STRINGS x86_64 arm64 "x86_64;arm64")
@@ -212,57 +218,39 @@ if(OS_MACOS)
 		endif()
 	endfunction()
 
-else()
-	if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-		set(_ARCH_SUFFIX 64)
-	else()
-		set(_ARCH_SUFFIX 32)
-	endif()
-	set(OBS_OUTPUT_DIR ${CMAKE_BINARY_DIR}/rundir)
-
-	if(OS_POSIX)
-		option(LINUX_PORTABLE "Build portable version (Linux)" OFF)
-		option(LINUX_RPATH "Set runpath (Linux)" ON)
-		if(NOT LINUX_PORTABLE)
-			set(OBS_LIBRARY_DESTINATION ${CMAKE_INSTALL_LIBDIR})
-			set(OBS_PLUGIN_DESTINATION ${OBS_LIBRARY_DESTINATION}/obs-plugins)
-			if (LINUX_RPATH)
-				set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib)
-			endif()
-			set(OBS_DATA_DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/obs)
-		else()
-			set(OBS_LIBRARY_DESTINATION bin/${_ARCH_SUFFIX}bit)
-			set(OBS_PLUGIN_DESTINATION obs-plugins/${_ARCH_SUFFIX}bit)
-			if (LINUX_RPATH)
-				set(CMAKE_INSTALL_RPATH "$ORIGIN/" "${CMAKE_INSTALL_PREFIX}/${OBS_LIBRARY_DESTINATION}")
-			endif()
-			set(OBS_DATA_DESTINATION "data")
+elseif(OS_POSIX)
+	option(LINUX_PORTABLE "Build portable version (Linux)" OFF)
+	option(LINUX_RPATH "Set runpath (Linux)" ON)
+	if(NOT LINUX_PORTABLE)
+		set(OBS_LIBRARY_DESTINATION ${CMAKE_INSTALL_LIBDIR})
+		set(OBS_PLUGIN_DESTINATION ${OBS_LIBRARY_DESTINATION}/obs-plugins)
+		if (LINUX_RPATH)
+			set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib)
 		endif()
-
-		if(OS_LINUX)
-			set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
-			set(CPACK_DEBIAN_PACKAGE_MAINTAINER "${LINUX_MAINTAINER_EMAIL}")
-			set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
-			set(PKG_SUFFIX "-linux-x86_64" CACHE STRING "Suffix of package name")
-			set(CPACK_PACKAGE_FILE_NAME
-				"${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}${PKG_SUFFIX}")
-
-			set(CPACK_GENERATOR "DEB")
-
-			if(NOT LINUX_PORTABLE)
-				set(CPACK_SET_DESTDIR ON)
-			endif()
-			include(CPack)
-		endif()
+		set(OBS_DATA_DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/obs)
 	else()
-		set(OBS_LIBRARY_DESTINATION "bin/${_ARCH_SUFFIX}bit")
-		set(OBS_LIBRARY32_DESTINATION "bin/32bit")
-		set(OBS_LIBRARY64_DESTINATION "bin/64bit")
-		set(OBS_PLUGIN_DESTINATION "obs-plugins/${_ARCH_SUFFIX}bit")
-		set(OBS_PLUGIN32_DESTINATION "obs-plugins/32bit")
-		set(OBS_PLUGIN64_DESTINATION "obs-plugins/64bit")
-
+		set(OBS_LIBRARY_DESTINATION bin/${_ARCH_SUFFIX}bit)
+		set(OBS_PLUGIN_DESTINATION obs-plugins/${_ARCH_SUFFIX}bit)
+		if (LINUX_RPATH)
+			set(CMAKE_INSTALL_RPATH "$ORIGIN/" "${CMAKE_INSTALL_PREFIX}/${OBS_LIBRARY_DESTINATION}")
+		endif()
 		set(OBS_DATA_DESTINATION "data")
+	endif()
+
+	if(OS_LINUX)
+		set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
+		set(CPACK_DEBIAN_PACKAGE_MAINTAINER "${LINUX_MAINTAINER_EMAIL}")
+		set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+		set(PKG_SUFFIX "-linux-x86_64" CACHE STRING "Suffix of package name")
+		set(CPACK_PACKAGE_FILE_NAME
+			"${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}${PKG_SUFFIX}")
+
+		set(CPACK_GENERATOR "DEB")
+
+		if(NOT LINUX_PORTABLE)
+			set(CPACK_SET_DESTDIR ON)
+		endif()
+		include(CPack)
 	endif()
 
 	function(setup_plugin_target target)
@@ -271,32 +259,36 @@ else()
 		install(
 			TARGETS ${target}
 			RUNTIME DESTINATION "${OBS_PLUGIN_DESTINATION}"
-			COMPONENT ${target}_Runtime
 			LIBRARY DESTINATION "${OBS_PLUGIN_DESTINATION}"
-			COMPONENT ${target}_Runtime
-			NAMELINK_COMPONENT ${target}_Development)
+		)
+
+		if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/data)
+			install(
+				DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/data/
+				DESTINATION ${OBS_DATA_DESTINATION}/obs-plugins/${target}
+				USE_SOURCE_PERMISSIONS
+				COMPONENT obs_plugins)
+		endif()
+	endfunction()
+
+elseif(OS_WINDOWS)
+	function(setup_plugin_target target)
+		set_target_properties(${target} PROPERTIES PREFIX "")
+
+		set(PLUGIN_BIN "${target}/bin/${_ARCH_SUFFIX}bit")
+		set(PLUGIN_DATA "${target}/data")
 
 		install(
-			FILES $<TARGET_FILE:${target}>
-			DESTINATION $<CONFIG>/${OBS_PLUGIN_DESTINATION}
-			COMPONENT obs_rundir
-			EXCLUDE_FROM_ALL)
+			TARGETS ${target}
+			RUNTIME DESTINATION "${PLUGIN_BIN}"
+			LIBRARY DESTINATION "${PLUGIN_BIN}"
+		)
 
-		if(OS_WINDOWS)
-			install(
-				FILES $<TARGET_PDB_FILE:${target}>
-				CONFIGURATIONS "RelWithDebInfo" "Debug"
-				DESTINATION ${OBS_PLUGIN_DESTINATION}
-				COMPONENT ${target}_Runtime
-				OPTIONAL)
-
-			install(
-				FILES $<TARGET_PDB_FILE:${target}>
-				CONFIGURATIONS "RelWithDebInfo" "Debug"
-				DESTINATION $<CONFIG>/${OBS_PLUGIN_DESTINATION}
-				COMPONENT obs_rundir
-				OPTIONAL EXCLUDE_FROM_ALL)
-		endif()
+		install(
+			FILES $<TARGET_PDB_FILE:${target}>
+			CONFIGURATIONS "RelWithDebInfo" "Debug"
+			DESTINATION ${PLUGIN_BIN}
+			OPTIONAL)
 
 		if(MSVC)
 			target_link_options(
@@ -308,36 +300,13 @@ else()
 				"$<$<CONFIG:RELWITHDEBINFO>:LINKER\:/INCREMENTAL:NO>")
 		endif()
 
-		setup_target_resources(${target} obs-plugins/${target})
-
-		if(OS_WINDOWS)
-			add_custom_command(
-				TARGET ${target}
-				POST_BUILD
-				COMMAND
-				"${CMAKE_COMMAND}" -DCMAKE_INSTALL_PREFIX=${OBS_OUTPUT_DIR}
-				-DCMAKE_INSTALL_COMPONENT=obs_rundir
-				-DCMAKE_INSTALL_CONFIG_NAME=$<CONFIG> -P
-				${CMAKE_CURRENT_BINARY_DIR}/cmake_install.cmake
-				COMMENT "Installing to plugin rundir"
-				VERBATIM)
-		endif()
+		install(
+			DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/data/
+			DESTINATION ${PLUGIN_DATA}/
+			USE_SOURCE_PERMISSIONS
+			OPTIONAL)
 	endfunction()
 
-	function(setup_target_resources target destination)
-		if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/data)
-			install(
-				DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/data/
-				DESTINATION ${OBS_DATA_DESTINATION}/${destination}
-				USE_SOURCE_PERMISSIONS
-				COMPONENT obs_plugins)
-
-			install(
-				DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/data
-				DESTINATION $<CONFIG>/${OBS_DATA_DESTINATION}/${destination}
-				USE_SOURCE_PERMISSIONS
-				COMPONENT obs_rundir
-				EXCLUDE_FROM_ALL)
-		endif()
-	endfunction()
+else()
+	message(FATAL_ERROR "Should not reach here.")
 endif()

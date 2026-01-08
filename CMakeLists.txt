@@ -69,7 +69,7 @@ if(OS_WINDOWS)
 
 	target_link_libraries(${PROJECT_NAME} OBS::w32-pthreads)
 
-	set(LICENSE_DESTINATION "data/obs-plugins/${PROJECT_NAME}")
+	set(LICENSE_DESTINATION "${PROJECT_NAME}/data")
 endif()
 
 if(OS_LINUX)
