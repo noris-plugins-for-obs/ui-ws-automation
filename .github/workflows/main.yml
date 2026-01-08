@@ -189,7 +189,6 @@ jobs:
           zipfile=$PWD/package/${PLUGIN_NAME}${PKG_SUFFIX}.zip
           mkdir package
           (cd release/ && zip -r $zipfile ${PLUGIN_NAME}.plugin)
-          ci/macos/install-packagesbuild.sh
           packagesbuild \
             --build-folder $PWD/package/ \
             build/installer-macOS.generated.pkgproj
