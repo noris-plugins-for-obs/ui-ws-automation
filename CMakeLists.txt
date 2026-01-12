@@ -27,7 +27,8 @@ if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
 	find_package(obs-frontend-api REQUIRED)
 	include(cmake/ObsPluginHelpers.cmake)
 	add_library(OBS::frontend-api ALIAS OBS::obs-frontend-api)
-	find_qt(VERSION ${QT_VERSION} COMPONENTS Widgets Core COMPONENTS_LINUX Gui)
+	set(QT_NO_CREATE_VERSIONLESS_TARGETS OFF)
+	find_package(Qt${QT_VERSION} COMPONENTS Widgets Core Gui)
 endif()
 
 configure_file(
