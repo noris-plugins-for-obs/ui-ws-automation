@@ -17,7 +17,7 @@ through obs-websocket.
 %autosetup -p1
 
 %build
-%{cmake} -DLINUX_RPATH=OFF -DQT_VERSION=6 -DINSTALL_LICENSE_FILES:BOOL=OFF
+%{cmake} -DQT_VERSION=6 -DINSTALL_LICENSE_FILES:BOOL=OFF
 %{cmake_build}
 
 %install
