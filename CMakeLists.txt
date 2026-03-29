@@ -27,7 +27,8 @@ if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_SOURCE_DIR})
 	find_package(obs-frontend-api REQUIRED)
 	include(cmake/ObsPluginHelpers.cmake)
 	add_library(OBS::frontend-api ALIAS OBS::obs-frontend-api)
-	find_qt(VERSION ${QT_VERSION} COMPONENTS Widgets Core COMPONENTS_LINUX Gui)
+	set(QT_NO_CREATE_VERSIONLESS_TARGETS OFF)
+	find_package(Qt${QT_VERSION} COMPONENTS Widgets Core Gui)
 endif()
 
 configure_file(
@@ -69,7 +70,7 @@ if(OS_WINDOWS)
 
 	target_link_libraries(${PROJECT_NAME} OBS::w32-pthreads)
 
-	set(LICENSE_DESTINATION "data/obs-plugins/${PROJECT_NAME}")
+	set(LICENSE_DESTINATION "${PROJECT_NAME}/data")
 endif()
 
 if(OS_LINUX)
@@ -84,7 +85,7 @@ if(OS_LINUX)
 	endif()
 endif()
 
-if(APPLE)
+if(OS_MACOS)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -fvisibility=default")
 
 	set(LICENSE_DESTINATION "${PROJECT_NAME}.plugin/Contents/Resources")
@@ -93,6 +94,11 @@ if(APPLE)
 	set(MACOSX_PLUGIN_GUI_IDENTIFIER "${MACOS_BUNDLEID}")
 	set(MACOSX_PLUGIN_BUNDLE_VERSION "${PROJECT_VERSION}")
 	set(MACOSX_PLUGIN_SHORT_VERSION_STRING "1")
+
+	if(ENABLE_COVERAGE)
+		target_compile_options(${PROJECT_NAME} PRIVATE -coverage)
+		target_link_options(${PROJECT_NAME} PRIVATE --coverage)
+	endif()
 endif()
 
 file(GENERATE OUTPUT .gitignore CONTENT "*\n")
