@@ -87,28 +87,31 @@ void widget_invoke(obs_data_t *request, obs_data_t *response, void *priv_data)
 		return;
 	}
 
-	if (method.parameterCount() == 0) {
-		method.invoke(found, Qt::QueuedConnection);
-		return;
-	}
+	QMetaMethodArgument args[10];
+	QString args_str[10];
+	int args_int[10];
+	bool args_bool[10];
 
-	if (method.parameterCount() == 1) {
+	for (int i = 0; i < method.parameterCount() && i < 10; i++) {
 		bool ok = false;
-		obs_data_item_t *item = obs_data_item_byname(request, "arg1");
+		char arg_name[8];
+		snprintf(arg_name, sizeof(arg_name), "arg%d", i + 1);
+		obs_data_item_t *item = obs_data_item_byname(request, arg_name);
 		if (item && obs_data_item_has_user_value(item)) {
 			switch (obs_data_item_gettype(item)) {
-			case OBS_DATA_STRING: {
-				QString str = QString::fromUtf8(obs_data_item_get_string(item));
-				method.invoke(found, Qt::QueuedConnection, Q_ARG(QString, str));
+			case OBS_DATA_STRING:
+				args_str[i] = QString::fromUtf8(obs_data_item_get_string(item));
+				args[i] = Q_ARG(QString, args_str[i]);
 				ok = true;
 				break;
-			}
 			case OBS_DATA_NUMBER:
-				method.invoke(found, Qt::QueuedConnection, Q_ARG(int, obs_data_item_get_int(item)));
+				args_int[i] = obs_data_item_get_int(item);
+				args[i] = Q_ARG(int, args_int[i]);
 				ok = true;
 				break;
 			case OBS_DATA_BOOLEAN:
-				method.invoke(found, Qt::QueuedConnection, Q_ARG(bool, obs_data_item_get_bool(item)));
+				args_bool[i] = obs_data_item_get_bool(item);
+				args[i] = Q_ARG(bool, args_bool[i]);
 				ok = true;
 				break;
 			default:
@@ -116,10 +119,55 @@ void widget_invoke(obs_data_t *request, obs_data_t *response, void *priv_data)
 			}
 		}
 		obs_data_item_release(&item);
-		if (ok)
+		if (!ok) {
+			blog(LOG_ERROR, "Failed to parse '%s' for method '%s'", arg_name, method.name().data());
+			obs_data_set_string(response, "error", "Error: invalid arguments");
 			return;
+		}
 	}
 
-	blog(LOG_ERROR, "Failed to invoke method '%s'", method.name().data());
-	obs_data_set_string(response, "error", "Error: invalid arguments");
+	switch (method.parameterCount()) {
+	case 0:
+		method.invoke(found, Qt::QueuedConnection);
+		return;
+	case 1:
+		method.invoke(found, Qt::QueuedConnection, args[0]);
+		return;
+	case 2:
+		method.invoke(found, Qt::QueuedConnection, args[0], args[1]);
+		return;
+	case 3:
+		method.invoke(found, Qt::QueuedConnection, args[0], args[1], args[2]);
+		return;
+	case 4:
+		method.invoke(found, Qt::QueuedConnection, args[0], args[1], args[2], args[3]);
+		return;
+	case 5:
+		method.invoke(found, Qt::QueuedConnection, args[0], args[1], args[2], args[3], args[4]);
+		return;
+	case 6:
+		method.invoke(found, Qt::QueuedConnection, args[0], args[1], args[2], args[3], args[4], args[5]);
+		return;
+	case 7:
+		method.invoke(found, Qt::QueuedConnection, args[0], args[1], args[2], args[3], args[4], args[5],
+			      args[6]);
+		return;
+	case 8:
+		method.invoke(found, Qt::QueuedConnection, args[0], args[1], args[2], args[3], args[4], args[5],
+			      args[6], args[7]);
+		return;
+	case 9:
+		method.invoke(found, Qt::QueuedConnection, args[0], args[1], args[2], args[3], args[4], args[5],
+			      args[6], args[7], args[8]);
+		return;
+	case 10:
+		method.invoke(found, Qt::QueuedConnection, args[0], args[1], args[2], args[3], args[4], args[5],
+			      args[6], args[7], args[8], args[9]);
+		return;
+	default:
+		blog(LOG_ERROR, "Method '%s' has too many parameters (%d)", method.name().data(),
+		     method.parameterCount());
+		obs_data_set_string(response, "error", "Error: too many parameters");
+	}
+	return;
 }
