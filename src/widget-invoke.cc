@@ -87,7 +87,11 @@ void widget_invoke(obs_data_t *request, obs_data_t *response, void *priv_data)
 		return;
 	}
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 5, 0)
+	QGenericArgument args[10];
+#else
 	QMetaMethodArgument args[10];
+#endif
 	QString args_str[10];
 	int args_int[10];
 	bool args_bool[10];
