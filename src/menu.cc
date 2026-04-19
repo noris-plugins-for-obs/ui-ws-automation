@@ -68,6 +68,7 @@ void menu_list(obs_data_t *request, obs_data_t *response, void *priv_data)
 	QMenuBar *menuBar = qobject_cast<QMenuBar *>(main_window->menuWidget());
 	if (!menuBar) {
 		obs_data_set_string(response, "error", "Error: no menu bar");
+		return;
 	}
 
 	OBSDataArrayAutoRelease array = obs_data_array_create();
@@ -87,6 +88,7 @@ void menu_trigger(obs_data_t *request, obs_data_t *response, void *priv_data)
 	QMenuBar *menuBar = qobject_cast<QMenuBar *>(main_window->menuWidget());
 	if (!menuBar) {
 		obs_data_set_string(response, "error", "Error: no menu bar");
+		return;
 	}
 
 	OBSDataArrayAutoRelease array = obs_data_get_array(request, "path");
