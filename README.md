@@ -7,3 +7,8 @@ This plugin helps to test plugins on OBS Studio by delegating user-interface ope
 These operations are available:
 - Menu item: list items, trigger item.
 - Dialog: list dialogs, ...
+
+> [!WARNING]
+> This plugin exposes internal UI inspection and controls of OBS Studio through obs-websocket.
+> Use it with caution and only for testing purposes.
+> Do *not* expose obs-websocket to untrusted clients or networks while using this plugin.
