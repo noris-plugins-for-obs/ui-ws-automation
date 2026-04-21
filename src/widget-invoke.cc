@@ -100,7 +100,7 @@ void widget_invoke(obs_data_t *request, obs_data_t *response, void *priv_data)
 		bool ok = false;
 		char arg_name[8];
 		snprintf(arg_name, sizeof(arg_name), "arg%d", i + 1);
-		obs_data_item_t *item = obs_data_item_byname(request, arg_name);
+		OBSDataItemAutoRelease item = obs_data_item_byname(request, arg_name);
 		if (item && obs_data_item_has_user_value(item)) {
 			switch (obs_data_item_gettype(item)) {
 			case OBS_DATA_STRING:
@@ -122,7 +122,6 @@ void widget_invoke(obs_data_t *request, obs_data_t *response, void *priv_data)
 				break;
 			}
 		}
-		obs_data_item_release(&item);
 		if (!ok) {
 			blog(LOG_ERROR, "Failed to parse '%s' for method '%s'", arg_name, method.name().data());
 			obs_data_set_string(response, "error", "Error: invalid arguments");
