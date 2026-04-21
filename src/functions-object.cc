@@ -71,16 +71,27 @@ bool test_object(const QObject *obj, obs_data_t *data)
 			ret = false;
 			break;
 		}
-		bool ok = false;
 		switch (obs_data_item_gettype(item)) {
 		case OBS_DATA_STRING:
 			if (strcmp(QT_TO_UTF8(var.toString()), obs_data_item_get_string(item)) != 0)
 				ret = false;
 			break;
-		case OBS_DATA_NUMBER:
-			if (var.toLongLong(&ok) != obs_data_item_get_int(item) || !ok)
+		case OBS_DATA_NUMBER: {
+			bool ok = false;
+			switch (obs_data_item_numtype(item)) {
+			case OBS_DATA_NUM_INT:
+				if (var.toLongLong(&ok) != obs_data_item_get_int(item) || !ok)
+					ret = false;
+				break;
+			case OBS_DATA_NUM_DOUBLE:
+				if (var.toDouble(&ok) != obs_data_item_get_double(item) || !ok)
+					ret = false;
+				break;
+			case OBS_DATA_NUM_INVALID:
 				ret = false;
+			}
 			break;
+		}
 		case OBS_DATA_BOOLEAN:
 			if (var.toBool() != obs_data_item_get_bool(item))
 				ret = false;
