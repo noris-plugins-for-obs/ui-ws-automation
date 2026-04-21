@@ -24,6 +24,8 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 #include "plugin-macros.generated.h"
 #include "entrypoints.h"
 
+#define ENABLE_FILE "enable.json"
+
 OBS_DECLARE_MODULE()
 OBS_MODULE_USE_DEFAULT_LOCALE(PLUGIN_NAME, "en-US")
 
@@ -46,6 +48,26 @@ bool obs_module_load(void)
 	blog(LOG_INFO, "plugin loaded (plugin version %s, API version %d.%d.%d)", PLUGIN_VERSION, LIBOBS_API_MAJOR_VER,
 	     LIBOBS_API_MINOR_VER, LIBOBS_API_PATCH_VER);
 	return true;
+}
+
+static bool is_plugin_enabled()
+{
+	char *enable_file_path = obs_module_config_path(ENABLE_FILE);
+	if (!enable_file_path) {
+		blog(LOG_INFO, "Cannot find the enable file '%s'", ENABLE_FILE);
+		return false;
+	}
+
+	bool enable = false;
+
+	obs_data_t *data = obs_data_create_from_json_file(enable_file_path);
+	if (data) {
+		enable = obs_data_get_bool(data, "enable");
+		obs_data_release(data);
+	}
+
+	bfree(enable_file_path);
+	return enable;
 }
 
 struct ws_interface_s
@@ -78,6 +100,11 @@ FUNC_MTSAFE(widget_invoke);
 
 void obs_module_post_load()
 {
+	if (!is_plugin_enabled()) {
+		blog(LOG_WARNING, "Plugin is not enabled. Need to create '%s' and set 'enable' to true", ENABLE_FILE);
+		return;
+	}
+
 	void *main_window = obs_frontend_get_main_window();
 	if (!main_window) {
 		blog(LOG_ERROR, "Cannot get the main window pointer");
