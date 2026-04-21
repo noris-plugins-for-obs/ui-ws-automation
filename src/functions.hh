@@ -1,6 +1,6 @@
 #pragma once
 
-#define QT_TO_UTF8(str) str.toUtf8().constData()
+#define QT_TO_UTF8(str) ((str).toUtf8().constData())
 
 class QObject;
 class QWidget;
