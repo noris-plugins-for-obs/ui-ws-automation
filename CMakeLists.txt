@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 
-project(ui-ws-automation VERSION 0.2.0)
+project(ui-ws-automation VERSION 0.2.1)
 
 set(PLUGIN_AUTHOR "Norihiro Kamae")
 
