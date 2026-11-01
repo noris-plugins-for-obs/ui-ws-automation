@@ -96,7 +96,7 @@ jobs:
         include:
           - obs: 28
             arch: 'universal'
-            obs-onsdriver: '< 30'
+            obs-onsdriver: '< 31'
           - obs: 30
             arch: 'universal'
             obs-onsdriver: '< 31'
@@ -261,7 +261,7 @@ jobs:
           - obs: 28
             arch: 'x64'
             runner: 'windows-2022'
-            obs-onsdriver: '< 30'
+            obs-onsdriver: '< 31'
           - obs: 30
             arch: 'x64'
             runner: 'windows-2022'
